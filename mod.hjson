@@ -1,0 +1,18 @@
+name: "Anti Griefer"
+displayName: Anti Griefer Mod
+author: 滞人
+description: '''
+Fuck griefers.
+
+This mod will provide these functions:
+- Detect griefer
+- Make someone ‘unusable', cannot build or break anything
+- Rebuild destructed blocks
+
+Github: https://github.com/abomb4/mindustry-anti-griefer-mod
+QQ: 779147200
+email: abomb4@163.com
+'''
+version: 0.1
+minGameVersion: 145
+java: true
