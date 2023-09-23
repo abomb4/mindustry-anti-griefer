@@ -4,11 +4,7 @@ import arc.Core;
 import arc.Events;
 import arc.scene.Group;
 import arc.struct.ObjectMap;
-import arc.struct.Seq;
-import mindustry.Vars;
 import mindustry.game.EventType;
-import mindustry.gen.Player;
-import mindustry.input.Binding;
 import mindustry.net.Administration;
 
 /**
@@ -16,7 +12,7 @@ import mindustry.net.Administration;
  *
  * @author abomb4 2023-09-09
  */
-public class AntiGrieferUI {
+public class AntiGrieferFragment {
 
     /** Store every joined players including exited */
     private final ObjectMap<String, Administration.PlayerInfo> allJoinedPlayers = new ObjectMap<>();
