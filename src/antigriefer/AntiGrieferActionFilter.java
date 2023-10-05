@@ -1,9 +1,9 @@
 package antigriefer;
 
-import arc.Core;
 import arc.Events;
-import arc.struct.Seq;
+import arc.struct.ObjectMap;
 import arc.util.Log;
+import arc.util.Time;
 import mindustry.Vars;
 import mindustry.game.EventType;
 import mindustry.net.Administration;
@@ -21,16 +21,18 @@ import java.util.List;
 public class AntiGrieferActionFilter implements Administration.ActionFilter {
 
     /** settings for this mod */
-    private final AntiGrieferSettings settings;
+    private final SettingsModel settings;
 
     private final List<GrieferDetector> grieferDetectors = new ArrayList<>();
+
+    private final ObjectMap<String, PlayerBehaviorContext> contextMap = new ObjectMap<>();
 
     /**
      * Construct
      *
      * @param settings settings for this mod
      */
-    public AntiGrieferActionFilter(AntiGrieferSettings settings) {
+    public AntiGrieferActionFilter(SettingsModel settings) {
         this.settings = settings;
 
         Events.on(EventType.PlayerJoin.class, playerJoin -> {
@@ -55,15 +57,19 @@ public class AntiGrieferActionFilter implements Administration.ActionFilter {
 
         // blacklist cannot do anything
         if (settings.inBlackList(id)) {
-            return false;
+            return action.type == Administration.ActionType.respawn;
         }
 
+        PlayerBehaviorContext context = contextMap.get(id, () -> new PlayerBehaviorContext(id));
+
         GrieferDetector.EnumDetectResult topLevel = GrieferDetector.EnumDetectResult.NOPE;
+        String reason = "";
 
         for (final GrieferDetector detector : this.grieferDetectors) {
-            GrieferDetector.EnumDetectResult level = detector.detect(action);
-            if (level.ordinal() > topLevel.ordinal()) {
-                topLevel = level;
+            GrieferDetector.DetectResult result = detector.detect(action, context);
+            if (result.level.ordinal() > topLevel.ordinal()) {
+                reason = result.reason;
+                topLevel = result.level;
             }
         }
 
@@ -75,16 +81,16 @@ public class AntiGrieferActionFilter implements Administration.ActionFilter {
         // - 进来啥也不干上来就拆
         // - 没有制作任何东西
 
-        if (mode == AntiGrieferSettings.MODE_LOOSE) {
+        if (mode == SettingsModel.MODE_LOOSE) {
             return switch (topLevel) {
                 case NOPE -> {
                     yield true;
                 }
                 case CONFIRMED -> {
-                    // Here is strict mode, go hell forever
+                    // go hell
                     Log.info("@ > Player @ (@) trying to @, griefer confirmed, add to black list.",
                         now(), action.player.name, id, action);
-                    settings.addBlackList(id);
+                    settings.addBlackList(action.player, reason);
                     Events.fire(new AntiGrieferAddToBlackListEvent(action.player));
                     yield false;
                 }
@@ -115,7 +121,8 @@ public class AntiGrieferActionFilter implements Administration.ActionFilter {
                     // Here is strict mode, go hell
                     Log.info("@ > Player @ (@) trying to @, danger, add to temp black list.",
                         now(), action.player.name, id, action);
-                    settings.addTemporaryBlackList(id);
+                    // temp
+                    context.temporatyBlacklistUntil = Time.millis() + 300 * 1000;
                     Events.fire(new AntiGrieferAddToTemporaryBlackListEvent(action.player));
                     yield false;
                 }
@@ -123,7 +130,7 @@ public class AntiGrieferActionFilter implements Administration.ActionFilter {
                     // Here is strict mode, go hell forever
                     Log.info("@ > Player @ (@) trying to @, griefer confirmed, add to black list.",
                         now(), action.player.name, id, action);
-                    settings.addBlackList(id);
+                    settings.addBlackList(action.player, reason);
                     Events.fire(new AntiGrieferAddToBlackListEvent(action.player));
                     yield false;
                 }

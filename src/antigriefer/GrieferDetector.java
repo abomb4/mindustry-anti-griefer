@@ -12,23 +12,24 @@ public interface GrieferDetector {
     /**
      * Detect
      *
-     * @param action player action
+     * @param action  player action
+     * @param context behavior context
      * @return detect result
      */
-    EnumDetectResult detect(Administration.PlayerAction action);
+    DetectResult detect(Administration.PlayerAction action, PlayerBehaviorContext context);
 
     /** Griefer detect result */
     enum EnumDetectResult {
-
-        /** Very good */
-        SAFE,
-        /** Good */
-        MAYBE_SAFE,
         /** ? */
         NOPE,
         /** May be */
         DANGER,
         /** Yes it is */
         CONFIRMED,
+    }
+
+    class DetectResult {
+        String reason;
+        EnumDetectResult level;
     }
 }
