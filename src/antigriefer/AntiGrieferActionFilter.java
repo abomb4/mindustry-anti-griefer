@@ -49,7 +49,7 @@ public class AntiGrieferActionFilter implements Administration.ActionFilter {
         }
 
         final String id = action.player.uuid();
-        Log.info("@ Player @ (@) doing @", new Date(), action.player.name, id, action.type);
+        // Log.info("@ Player @ (@) doing @", new Date(), action.player.name, id, action.type);
         // whitelist first
         if (settings.inWhiteList(id)) {
             return true;
@@ -84,7 +84,12 @@ public class AntiGrieferActionFilter implements Administration.ActionFilter {
         if (mode == SettingsModel.MODE_LOOSE) {
             return switch (topLevel) {
                 case NOPE -> {
-                    yield true;
+                    boolean allow = settings.allowedAction(action.type);
+                    if (!allow) {
+                        Log.info("@ > Player @ (@) trying to @, which action is not allowed.",
+                            now(), action.player.name, id, action);
+                    }
+                    yield allow;
                 }
                 case CONFIRMED -> {
                     // go hell
@@ -104,18 +109,13 @@ public class AntiGrieferActionFilter implements Administration.ActionFilter {
         } else {
             // AntiGrieferSettings.MODE_STRICT or others
             return switch (topLevel) {
-                case NOPE ->{
-                    // those action is not allowed, send a popup and avoid
-                    boolean forbid = action.type == Administration.ActionType.breakBlock
-                        || action.type == Administration.ActionType.configure
-                        || action.type == Administration.ActionType.removePlanned
-                        || action.type == Administration.ActionType.withdrawItem;
-                    if (forbid) {
-                        Log.info("@ > Player @ (@) trying to @, it's not allowed in STRICT mode",
+                case NOPE -> {
+                    boolean allow = settings.allowedAction(action.type);
+                    if (!allow) {
+                        Log.info("@ > Player @ (@) trying to @, which action is not allowed.",
                             now(), action.player.name, id, action);
                     }
-
-                    yield !forbid;
+                    yield allow;
                 }
                 case DANGER -> {
                     // Here is strict mode, go hell

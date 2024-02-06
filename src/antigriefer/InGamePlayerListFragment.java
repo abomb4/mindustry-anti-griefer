@@ -1,27 +1,31 @@
 package antigriefer;
 
 import arc.Core;
+import arc.Events;
 import arc.graphics.Color;
 import arc.graphics.g2d.Draw;
 import arc.graphics.g2d.Lines;
+import arc.math.Mathf;
 import arc.scene.Group;
 import arc.scene.event.ClickListener;
+import arc.scene.event.InputEvent;
 import arc.scene.event.Touchable;
 import arc.scene.ui.Image;
 import arc.scene.ui.ImageButton;
+import arc.scene.ui.Label;
 import arc.scene.ui.layout.Scl;
 import arc.scene.ui.layout.Table;
 import arc.util.Interval;
 import arc.util.Log;
 import arc.util.Scaling;
+import mindustry.Vars;
+import mindustry.game.EventType;
 import mindustry.gen.Groups;
 import mindustry.gen.Icon;
 import mindustry.gen.Tex;
 import mindustry.graphics.Pal;
+import mindustry.ui.Fonts;
 import mindustry.ui.Styles;
-
-import static mindustry.Vars.net;
-import static mindustry.Vars.ui;
 
 /**
  * Someone dangerous
@@ -30,13 +34,27 @@ import static mindustry.Vars.ui;
  */
 public class InGamePlayerListFragment {
 
+    public static final float WIDTH = 360f;
+    public static final float HEIGHT = 500f;
+    public static final float DEFAULT_X = 0f;
+    public static final float DEFAULT_Y = 60f;
     /** Store every joined players including exited */
     public final SettingsModel settings;
+
+    private static final Label.LabelStyle labelStyle = new Label.LabelStyle(Fonts.def, Color.white);
 
     public Table content = new Table().marginRight(13f).marginLeft(13f);
     private final Interval timer = new Interval();
 
     private boolean visible = false;
+    private Table table;
+
+    private boolean dragging = false;
+
+    public float x = DEFAULT_X;
+    public float y = DEFAULT_Y;
+    public float touchBeginX = 0;
+    public float touchBeginY = 0;
 
     public InGamePlayerListFragment(SettingsModel settings) {
         this.settings = settings;
@@ -44,49 +62,110 @@ public class InGamePlayerListFragment {
 
     public void build(Group parent) {
         content.name = "anti-griefer";
-        parent.fill(cont -> {
-            cont.name = "anti-griefer";
-            cont.visible(() -> visible);
-            cont.update(() -> {
-                if (visible && timer.get(20)) {
-                    rebuild();
-                    content.pack();
-                    content.act(Core.graphics.getDeltaTime());
-                    //hacky
-                    Core.scene.act(0f);
-                }
+        table = new Table(cont -> {
+            // }));
+            // parent.fill(cont -> {
+            cont.name = "anti-griefer-window";
+            cont.top();
+            cont.row().table(Tex.pane, t -> {
+                Label label = new Label("AG", labelStyle);
+                ClickListener cl = new ClickListener() {
+                    @Override
+                    public void touchDragged(InputEvent event, float x, float y, int pointer) {
+                        if (pointer != pressedPointer || cancelled) {
+                            return;
+                        }
+                        // pressed = isOver(event.listenerActor, x, y);
+                        if (pressed && pointer == 0 && button != null && !Core.input.keyDown(button)) {
+                            pressed = false;
+                        }
+                        if (!pressed) {
+                            // Once outside the tap square, don't use the tap square anymore.
+                            invalidateTapSquare();
+                        }
+                    }
+                };
+                label.addListener(cl);
+                label.update(() -> {
+                    if (cl.isPressed()) {
+                        if (!dragging) {
+                            dragging = true;
+                            touchBeginX = Vars.control.input.getMouseX();
+                            touchBeginY = Vars.control.input.getMouseY();
+                        } else {
+                            var tx = Vars.control.input.getMouseX() - touchBeginX;
+                            var ty = Vars.control.input.getMouseY() - touchBeginY;
+                            table.x = x + tx;
+                            table.y = y + ty;
+                        }
+                    } else if (dragging) {
+                        dragging = false;
+                        if (Mathf.within(table.x, table.y, x, y, 5)) {
+                            toggle();
+                        } else {
+                            x = table.x;
+                            y = table.y;
+                        }
+                    }
+                });
+                t.add(label).top().left().minWidth(80f).height(40);
+
+            }).left().top();
+
+            cont.row().table(Tex.pane, listTable -> {
+
+                listTable.visible(() -> visible);
+                listTable.update(() -> {
+                    if (visible && timer.get(20)) {
+                        rebuild();
+                        content.pack();
+                        content.act(Core.graphics.getDeltaTime());
+                        //hacky
+                        Core.scene.act(0f);
+                    }
+                });
+
+                listTable.right().marginRight(10).table(pane -> {
+                    pane.label(() -> Core.bundle.format("players", Groups.player.size() - 1));
+                    pane.row();
+
+                    pane.row();
+                    pane.pane(content).grow().scrollX(false);
+                    pane.row();
+
+                    pane.table(menu -> {
+                        menu.defaults().growX().height(50f).fillY();
+                        menu.name = "menu";
+
+                        // menu.button("@server.bans", ui.bans::show).disabled(b -> net.client());
+                        menu.button("@settings", Vars.ui.admins::show);
+                        menu.button("@close", this::toggle);
+                    }).margin(0f).pad(10f).growX();
+
+                }).left().touchable(Touchable.childrenOnly).growX();
             });
-
-            cont.right().marginRight(10).table(Tex.buttonTrans, pane -> {
-                pane.label(() -> Core.bundle.format(Groups.player.size() == 1 ? "players.single" : "players",
-                    Groups.player.size()));
-                pane.row();
-
-                pane.row();
-                pane.pane(content).grow().scrollX(false);
-                pane.row();
-
-                pane.table(menu -> {
-                    menu.defaults().growX().height(50f).fillY();
-                    menu.name = "menu";
-
-                    // menu.button("@server.bans", ui.bans::show).disabled(b -> net.client());
-                    // menu.button("@server.admins", ui.admins::show).disabled(b -> net.client());
-                    menu.button("@close", this::toggle);
-                }).margin(0f).pad(10f).growX();
-
-            }).touchable(Touchable.childrenOnly).minWidth(360f);
         });
+        table.left().bottom();
+        table.setWidth(WIDTH);
+        table.setHeight(HEIGHT);
+        table.x = DEFAULT_X;
+        table.y = DEFAULT_Y;
+        parent.addChild(table);
 
         rebuild();
-
-        parent.fill(full -> {
-            full.center().right().button("X", this::toggle).width(80).width(80);
-        });
-
-        // Events.on(EventType.WorldLoadEvent.class, (event -> {
-        //     Core.app.post(this::rebuild);
-        // }));
+        Events.on(EventType.WorldLoadEvent.class, (event -> {
+            visible = false;
+        }));
+        Events.on(EventType.ResizeEvent.class, (event -> {
+            if (table.x + 80 > Core.scene.getWidth()) {
+                table.x = x = DEFAULT_X;
+                table.y = y = DEFAULT_Y;
+            }
+            if (table.y + 150 > Core.scene.getHeight()) {
+                table.x = x = DEFAULT_X;
+                table.y = y = DEFAULT_Y;
+            }
+        }));
     }
 
     public void rebuild() {
@@ -100,12 +179,20 @@ public class InGamePlayerListFragment {
         //
         // players.sort(Structs.comps(Structs.comparing(Player::team), Structs.comparingBool(p -> !p.admin)));
 
-        for (var user : settings.players.values()) {
+        for (var user : settings.players.values().toSeq().sort((o1, o2) -> {
+            if (o1.online && !o2.online) {
+                return 1;
+            }
+            if (!o1.online && o2.online) {
+                return -1;
+            }
+            return o1.lastJoin.compareTo(o2.lastJoin);
+        })) {
             found = true;
 
-            Table button = new Table();
-            button.left();
-            button.margin(5).marginBottom(10);
+            Table buttonTable = new Table();
+            buttonTable.left();
+            buttonTable.margin(5).marginBottom(10);
 
             ClickListener listener = new ClickListener();
 
@@ -129,12 +216,12 @@ public class InGamePlayerListFragment {
             iconTable.add(new Image(Icon.trello).setScaling(Scaling.bounded)).grow();
             iconTable.name = user.name;
 
-            button.add(iconTable).size(h);
-            button.labelWrap("[#ffffff]" + user.name)
+            buttonTable.add(iconTable).size(h);
+            buttonTable.labelWrap("[#ffffff]" + user.name)
                 .style(Styles.outlineLabel).width(170f).pad(10);
-            button.add().grow();
+            buttonTable.add().grow();
 
-            button.background(Tex.underline);
+            buttonTable.background(Tex.underline);
 
             var noStyle = new ImageButton.ImageButtonStyle() {{
                 down = Styles.none;
@@ -152,19 +239,19 @@ public class InGamePlayerListFragment {
                 imageOverColor = Pal.accent.cpy().lerp(Color.white, 0.3f);
             }};
 
-            button.add().growY();
-            button.button(Icon.trash, settings.inBlackList(user.id) ? yesStyle : noStyle, () -> {
+            buttonTable.add().growY();
+            buttonTable.button(Icon.trash, settings.inBlackList(user.id) ? yesStyle : noStyle, () -> {
                 Log.info("Toggle black list");
                 settings.toggleBlackList(user.id);
                 rebuild();
-            }).marginRight(5);
-            button.button(Icon.admin, settings.inWhiteList(user.id) ? yesStyle : noStyle, () -> {
+            }).marginLeft(20).size(40, 40);
+            buttonTable.button(Icon.admin, settings.inWhiteList(user.id) ? yesStyle : noStyle, () -> {
                 Log.info("Toggle white list");
                 settings.toggleWhiteList(user.id);
                 rebuild();
-            }).marginRight(5);
+            }).marginLeft(20).size(40, 40);
 
-            content.add(button).width(350f).height(h + 14);
+            content.add(buttonTable).width(350f).height(h + 14);
             content.row();
         }
 
@@ -178,8 +265,10 @@ public class InGamePlayerListFragment {
     public void toggle() {
         visible = !visible;
         if (visible) {
+            table.setWidth(WIDTH);
             rebuild();
         } else {
+            table.setWidth(80f);
             Core.scene.setKeyboardFocus(null);
         }
     }

@@ -5,7 +5,6 @@ import arc.util.Log;
 import mindustry.Vars;
 import mindustry.game.EventType;
 import mindustry.mod.Mod;
-import mindustry.net.Administration;
 
 /**
  * Entrance
@@ -16,7 +15,8 @@ public class AntiGrieferMod extends Mod {
 
     public static AntiGrieferActionFilter filter;
 
-    public InGamePlayerListFragment frag;
+    public static InGamePlayerListFragment frag;
+    public static SettingsDialog settingsDialog;
 
     @Override
     public void init() {

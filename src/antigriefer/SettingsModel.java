@@ -2,10 +2,26 @@ package antigriefer;
 
 import arc.Core;
 import arc.struct.ObjectMap;
+import arc.struct.ObjectSet;
 import arc.util.Time;
 import mindustry.gen.Player;
+import mindustry.net.Administration;
 
 import java.util.Date;
+
+import static mindustry.net.Administration.ActionType.breakBlock;
+import static mindustry.net.Administration.ActionType.buildSelect;
+import static mindustry.net.Administration.ActionType.command;
+import static mindustry.net.Administration.ActionType.commandBuilding;
+import static mindustry.net.Administration.ActionType.commandUnits;
+import static mindustry.net.Administration.ActionType.configure;
+import static mindustry.net.Administration.ActionType.control;
+import static mindustry.net.Administration.ActionType.depositItem;
+import static mindustry.net.Administration.ActionType.placeBlock;
+import static mindustry.net.Administration.ActionType.removePlanned;
+import static mindustry.net.Administration.ActionType.respawn;
+import static mindustry.net.Administration.ActionType.rotate;
+import static mindustry.net.Administration.ActionType.withdrawItem;
 
 /**
  * Settings model
@@ -25,8 +41,26 @@ public class SettingsModel {
     /** Permanent black list */
     public ObjectMap<String, PlayerInfo> players = new ObjectMap<>();
 
+    public ObjectSet<Administration.ActionType> allowedActions = new ObjectSet<>();
+
     /** Strict mode, see {@link #MODE_STRICT} and {@link #MODE_LOOSE}, default is STRICT. */
     public int strictMode = MODE_STRICT;
+
+    public SettingsModel() {
+        allowedActions.addAll(
+            breakBlock, placeBlock, rotate, configure, withdrawItem, depositItem, control, buildSelect, command,
+            removePlanned, commandUnits, commandBuilding, respawn
+        );
+    }
+
+    /**
+     * Host can disable some action for normal players
+     *
+     * @return action is allowed
+     */
+    public boolean allowedAction(Administration.ActionType type) {
+        return allowedActions.contains(type);
+    }
 
     /**
      * Set strict mode, using {@link #MODE_STRICT} or {@link #MODE_LOOSE}
@@ -109,6 +143,9 @@ public class SettingsModel {
             return;
         }
         i.permanentBlack = !i.permanentBlack;
+        if (i.permanentBlack) {
+            i.permanentWhite = false;
+        }
         save();
     }
 
@@ -118,6 +155,9 @@ public class SettingsModel {
             return;
         }
         i.permanentWhite = !i.permanentWhite;
+        if (i.permanentWhite) {
+            i.permanentBlack = false;
+        }
         save();
     }
 
