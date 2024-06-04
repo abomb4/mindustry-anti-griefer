@@ -5,7 +5,6 @@ import arc.struct.ObjectMap;
 import arc.util.Log;
 import arc.util.Time;
 import mindustry.Vars;
-import mindustry.game.EventType;
 import mindustry.net.Administration;
 
 import java.text.SimpleDateFormat;
@@ -23,8 +22,10 @@ public class AntiGrieferActionFilter implements Administration.ActionFilter {
     /** settings for this mod */
     private final SettingsModel settings;
 
+    /** Algorithms */
     private final List<GrieferDetector> grieferDetectors = new ArrayList<>();
 
+    /** Temporary behavior storage */
     private final ObjectMap<String, PlayerBehaviorContext> contextMap = new ObjectMap<>();
 
     /**
@@ -34,16 +35,14 @@ public class AntiGrieferActionFilter implements Administration.ActionFilter {
      */
     public AntiGrieferActionFilter(SettingsModel settings) {
         this.settings = settings;
-
-        Events.on(EventType.PlayerJoin.class, playerJoin -> {
-            String id = playerJoin.player.uuid();
-
-        });
+        this.grieferDetectors.add(new GrieferDetectorNukeCoreImpl());
+        this.grieferDetectors.add(new GrieferDetectorDestructorImpl());
     }
 
     @Override
     public boolean allow(Administration.PlayerAction action) {
 
+        // skip your self
         if (action.player == Vars.player) {
             return true;
         }
@@ -55,12 +54,13 @@ public class AntiGrieferActionFilter implements Administration.ActionFilter {
             return true;
         }
 
+        PlayerBehaviorContext context = contextMap.get(id, () -> new PlayerBehaviorContext(id));
+        context.onPlayerAction(action);
+
         // blacklist cannot do anything
         if (settings.inBlackList(id)) {
             return action.type == Administration.ActionType.respawn;
         }
-
-        PlayerBehaviorContext context = contextMap.get(id, () -> new PlayerBehaviorContext(id));
 
         GrieferDetector.EnumDetectResult topLevel = GrieferDetector.EnumDetectResult.NOPE;
         String reason = "";
@@ -84,24 +84,24 @@ public class AntiGrieferActionFilter implements Administration.ActionFilter {
         if (mode == SettingsModel.MODE_LOOSE) {
             return switch (topLevel) {
                 case NOPE -> {
-                    boolean allow = settings.allowedAction(action.type);
+                    boolean allow = settings.actionAllowed(action.type);
                     if (!allow) {
                         Log.info("@ > Player @ (@) trying to @, which action is not allowed.",
-                            now(), action.player.name, id, action);
+                            now(), action.player.name, id, action.type);
                     }
                     yield allow;
                 }
                 case CONFIRMED -> {
                     // go hell
                     Log.info("@ > Player @ (@) trying to @, griefer confirmed, add to black list.",
-                        now(), action.player.name, id, action);
+                        now(), action.player.name, id, action.type);
                     settings.addBlackList(action.player, reason);
                     Events.fire(new AntiGrieferAddToBlackListEvent(action.player));
                     yield false;
                 }
                 case DANGER -> {
                     Log.info("@ > Player @ (@) trying to @, danger, popup.",
-                        now(), action.player.name, id, action);
+                        now(), action.player.name, id, action.type);
                     Events.fire(new AntiGrieferDangerousPlayerEvent(action.player));
                     yield true;
                 }
@@ -110,26 +110,26 @@ public class AntiGrieferActionFilter implements Administration.ActionFilter {
             // AntiGrieferSettings.MODE_STRICT or others
             return switch (topLevel) {
                 case NOPE -> {
-                    boolean allow = settings.allowedAction(action.type);
+                    boolean allow = settings.actionAllowed(action.type);
                     if (!allow) {
                         Log.info("@ > Player @ (@) trying to @, which action is not allowed.",
-                            now(), action.player.name, id, action);
+                            now(), action.player.name, id, action.type);
                     }
                     yield allow;
                 }
                 case DANGER -> {
                     // Here is strict mode, go hell
                     Log.info("@ > Player @ (@) trying to @, danger, add to temp black list.",
-                        now(), action.player.name, id, action);
+                        now(), action.player.name, id, action.type);
                     // temp
-                    context.temporatyBlacklistUntil = Time.millis() + 300 * 1000;
+                    context.temporaryBlacklistUntil = Time.millis() + 300 * 1000;
                     Events.fire(new AntiGrieferAddToTemporaryBlackListEvent(action.player));
                     yield false;
                 }
                 case CONFIRMED -> {
                     // Here is strict mode, go hell forever
                     Log.info("@ > Player @ (@) trying to @, griefer confirmed, add to black list.",
-                        now(), action.player.name, id, action);
+                        now(), action.player.name, id, action.type);
                     settings.addBlackList(action.player, reason);
                     Events.fire(new AntiGrieferAddToBlackListEvent(action.player));
                     yield false;

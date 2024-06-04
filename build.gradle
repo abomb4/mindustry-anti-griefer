@@ -1,3 +1,6 @@
+plugins {
+    id 'io.spring.dependency-management' version '1.0.10.RELEASE'
+}
 import org.apache.tools.ant.taskdefs.condition.Os
 
 apply plugin: "java"
@@ -17,12 +20,13 @@ sourceSets.main.java.srcDirs = ["src"]
 repositories {
     maven { name "Alibaba" ; url "https://maven.aliyun.com/repository/public" }
     mavenCentral()
+    maven { url 'https://raw.githubusercontent.com/Zelaux/MindustryRepo/master/repository' }
     maven { url 'https://www.jitpack.io' }
 }
 
 ext {
     //the build number that this mod is made for
-    mindustryVersion = 'v145'
+    mindustryVersion = 'v146'
     jabelVersion = "0.9.0"
     sdkRoot = System.getenv("ANDROID_HOME") ?: System.getenv("ANDROID_SDK_ROOT")
 
@@ -54,16 +58,23 @@ allprojects {
 }
 
 dependencies {
-    compileOnly "com.github.Anuken.Arc:fx:$mindustryVersion"
-    compileOnly "com.github.Anuken.Arc:flabel:$mindustryVersion"
-    compileOnly "com.github.Anuken.Arc:freetype:$mindustryVersion"
-    compileOnly "com.github.Anuken.Arc:g3d:$mindustryVersion"
-    compileOnly "com.github.Anuken.Arc:arcnet:$mindustryVersion"
-
     compileOnly "com.github.Anuken.Arc:arc-core:$mindustryVersion"
-    compileOnly "com.github.Anuken.MindustryJitpack:core:$mindustryVersion"
+    compileOnly "com.github.Anuken.Mindustry:core:$mindustryVersion"
 
     annotationProcessor "com.github.Anuken:jabel:$jabelVersion"
+}
+
+dependencyManagement {
+    dependencies {
+//        dependency "com.github.Anuken.Arc:fx:$mindustryVersion"
+//        dependency "com.github.Anuken.Arc:flabel:$mindustryVersion"
+//        dependency "com.github.Anuken.Arc:freetype:$mindustryVersion"
+//        dependency "com.github.Anuken.Arc:g3d:$mindustryVersion"
+//        dependency "com.github.Anuken.Arc:arcnet:$mindustryVersion"
+
+        dependency "com.github.Anuken.Arc:arc-core:$mindustryVersion"
+        dependency "com.github.Anuken.Mindustry:core:$mindustryVersion"
+    }
 }
 
 task jarAndroid {

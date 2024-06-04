@@ -181,12 +181,21 @@ public class InGamePlayerListFragment {
 
         for (var user : settings.players.values().toSeq().sort((o1, o2) -> {
             if (o1.online && !o2.online) {
-                return 1;
-            }
-            if (!o1.online && o2.online) {
                 return -1;
             }
-            return o1.lastJoin.compareTo(o2.lastJoin);
+            if (!o1.online && o2.online) {
+                return 1;
+            }
+            if (o1.lastJoin == o2.lastJoin) {
+                return 0;
+            }
+            if (o1.lastJoin == null) {
+                return 1;
+            }
+            if (o2.lastJoin == null) {
+                return -1;
+            }
+            return -(o1.lastJoin.compareTo(o2.lastJoin));
         })) {
             found = true;
 

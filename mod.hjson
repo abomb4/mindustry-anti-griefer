@@ -14,6 +14,6 @@ QQ: 779147200
 email: abomb4@163.com
 '''
 version: 0.1
-minGameVersion: 145
+minGameVersion: 146
 java: true
 hidden: true

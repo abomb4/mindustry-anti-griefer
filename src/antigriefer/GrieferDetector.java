@@ -31,5 +31,13 @@ public interface GrieferDetector {
     class DetectResult {
         String reason;
         EnumDetectResult level;
+
+        @Override
+        public String toString() {
+            return "DetectResult{" +
+                "reason='" + reason + '\'' +
+                ", level=" + level +
+                '}';
+        }
     }
 }

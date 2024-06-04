@@ -41,6 +41,7 @@ public class SettingsModel {
     /** Permanent black list */
     public ObjectMap<String, PlayerInfo> players = new ObjectMap<>();
 
+    /** Allowd actions for normal players */
     public ObjectSet<Administration.ActionType> allowedActions = new ObjectSet<>();
 
     /** Strict mode, see {@link #MODE_STRICT} and {@link #MODE_LOOSE}, default is STRICT. */
@@ -58,7 +59,7 @@ public class SettingsModel {
      *
      * @return action is allowed
      */
-    public boolean allowedAction(Administration.ActionType type) {
+    public boolean actionAllowed(Administration.ActionType type) {
         return allowedActions.contains(type);
     }
 

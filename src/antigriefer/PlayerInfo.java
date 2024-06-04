@@ -31,6 +31,7 @@ public class PlayerInfo {
         this.id = info.id;
         this.name = info.lastName;
         this.online = online;
+        this.lastJoin = new Date();
     }
 
     public void useName(String name) {
