@@ -9,19 +9,7 @@ import mindustry.net.Administration;
 
 import java.util.Date;
 
-import static mindustry.net.Administration.ActionType.breakBlock;
-import static mindustry.net.Administration.ActionType.buildSelect;
-import static mindustry.net.Administration.ActionType.command;
-import static mindustry.net.Administration.ActionType.commandBuilding;
-import static mindustry.net.Administration.ActionType.commandUnits;
-import static mindustry.net.Administration.ActionType.configure;
-import static mindustry.net.Administration.ActionType.control;
-import static mindustry.net.Administration.ActionType.depositItem;
-import static mindustry.net.Administration.ActionType.placeBlock;
-import static mindustry.net.Administration.ActionType.removePlanned;
-import static mindustry.net.Administration.ActionType.respawn;
-import static mindustry.net.Administration.ActionType.rotate;
-import static mindustry.net.Administration.ActionType.withdrawItem;
+import static mindustry.net.Administration.ActionType.*;
 
 /**
  * Settings model
@@ -50,7 +38,7 @@ public class SettingsModel {
     public SettingsModel() {
         allowedActions.addAll(
             breakBlock, placeBlock, rotate, configure, withdrawItem, depositItem, control, buildSelect, command,
-            removePlanned, commandUnits, commandBuilding, respawn
+            removePlanned, commandUnits, commandBuilding, respawn, pickupBlock, dropPayload
         );
     }
 
